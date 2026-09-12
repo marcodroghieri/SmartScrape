@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartScrape</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    
+    <img src="https://images.cooltext.com/5758527.png" width="725" height="87" alt="SMART SCRAPE" />
+
+    <p class="subtitle">Monitoraggio prezzi in tempo reale su Google Shopping</p>
+
+    <div class="search-container">
+        <input type="text" id="input-ricerca" class="search-input" placeholder="Es. rtx 5090...">
+        
+        
+
+        <button id="btn-invia-ricerca" class="btn-cerca">CERCA</button>
+    </div>
+
+    <div> <select id="select-ordina" class="select-ordinamento">
+            <option value="prezzo" {% if criterio_attuale == 'prezzo' %}selected{% endif %}>Ordina per: Prezzo più basso</option>
+            <option value="stelle" {% if criterio_attuale == 'stelle' %}selected{% endif %}>Ordina per: Valutazione (Stelle)</option>
+            <option value="recensioni" {% if criterio_attuale == 'recensioni' %}selected{% endif %}>Ordina per: Numero Recensioni</option>
+    </select> </div>
+
+    <div> <table>
+        <thead>
+            <tr>
+                <th>Modello</th>
+                <th>Prezzo</th>
+                <th>Negozio</th>
+                <th>Stelle</th>
+                <th>Numero recensioni</th>
+            </tr>
+        </thead>
+        <tbody id="corpo-tabella">
+            {% for p in prodotti %}
+            <tr>
+                <td> <a href="{{ p[5] }}" target="_blank" class="link-prodotto">{{ p[0] }}</a> </td>
+                <td> €{{ p[1] }} </td>
+                <td> {{ p[2] }} </td>
+                <td> {% if p[3] > 0 %} ⭐ {{ p[3] }} {% else %} N/D {% endif %} </td>
+                <td> {% if p[4] > 0 %} {{ p[4] }} {% else %} 0 recensioni {% endif %} </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: #888;">Nessun dato presente. Fai una ricerca qui sopra.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table> </div>
+<script>
+let controlloIntervallo = null;
+
+// Gestione del cambio di ordinamento immediato (senza rifare lo scraping)
+document.getElementById('select-ordina').addEventListener('change', function(e) {
+    const valoreOrdinamento = e.target.value;
+    // Ricarica la pagina passando il nuovo ordinamento nell'URL
+    window.location.href = `/?ordina=${valoreOrdinamento}`;
+});
+
+function InterrogazioneStato() {
+    controlloIntervallo = setInterval(() => {
+        fetch('/stato-scraping')
+            .then(response => response.json())
+            .then(data => {
+                if (data.finito) {
+                    clearInterval(controlloIntervallo);
+                    localStorage.removeItem('scraping_attivo');
+                    
+                    
+                    const ordinamentoAttuale = document.getElementById('select-ordina').value;
+                    window.location.href = `/?ordina=${ordinamentoAttuale}`;
+                }
+            })
+            .catch(error => console.error('Errore nel polling:', error));
+    }, 2000);
+}
+
+document.getElementById('btn-invia-ricerca').addEventListener('click', function() {
+    const input = document.getElementById('input-ricerca');
+    const btn = document.getElementById('btn-invia-ricerca');
+    const select = document.getElementById('select-ordina');
+    const termineRicerca = input.value.trim();
+
+    if (!termineRicerca) {
+        alert("Inserisci qualcosa da cercare!");
+        return;
+    }
+
+    btn.innerText = "RICERCA IN CORSO..."; 
+    btn.disabled = true;
+    input.disabled = true;
+    select.disabled = true;
+
+    const tbody = document.getElementById('corpo-tabella');
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; font-weight: bold; color: #ff9800;">⛏️ Il Worker sta cercando "${termineRicerca}" su Google Shopping...</td></tr>`;
+
+    fetch('/avvia-scraping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: termineRicerca })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.status === "avviato") {
+            localStorage.setItem('scraping_attivo', 'true');
+            InterrogazioneStato();
+        } else {
+            alert("Errore nell'avvio dello scraping");
+            resetInterfaccia();
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        resetInterfaccia();
+    });
+});
+
+function resetInterfaccia() {
+    document.getElementById('btn-invia-ricerca').innerText = "CERCA E AGGIORNA";
+    document.getElementById('btn-invia-ricerca').disabled = false;
+    document.getElementById('input-ricerca').disabled = false;
+    document.getElementById('select-ordina').disabled = false;
+}
+
+window.addEventListener('load', () => {
+    if (localStorage.getItem('scraping_attivo') === 'true') {
+        document.getElementById('btn-invia-ricerca').innerText = "RICERCA IN CORSO..."; 
+        document.getElementById('btn-invia-ricerca').disabled = true;
+        document.getElementById('input-ricerca').disabled = true;
+        document.getElementById('select-ordina').disabled = true;
+        
+        document.getElementById('corpo-tabella').innerHTML = `<tr><td colspan="5" style="text-align: center; font-weight: bold; color: #ff9800;">⛏️ Scraping in corso... Attendi...</td></tr>`;
+        InterrogazioneStato();
+    }
+});
+</script>
+</body>
+</html>

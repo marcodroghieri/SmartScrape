@@ -1,0 +1,24 @@
+# Ambiente virtuale (Python venv)
+venv/
+.venv/
+env/
+
+# Segreti locali (chiavi API)
+.env
+
+# Configurazione locale di Claude Code
+.claude/
+
+# Cache di Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# File di sistema o degli editor
+.DS_Store
+.vscode/
+.idea/
+
+# Container Docker (se generano log locali o dati di persistenza non tracciati)
+*.log
