@@ -1,5 +1,7 @@
 # SmartScrape – Google Shopping Monitor
 
+![CI](https://github.com/marcodroghieri/SmartScrape/actions/workflows/ci.yml/badge.svg)
+
 > Corso di Sistemi Paralleli e Distribuiti
 > Anno Accademico: 2025/2026
 > Docente: Francesco Sportolari
