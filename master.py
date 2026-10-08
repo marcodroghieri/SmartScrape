@@ -1,6 +1,6 @@
-import redis
-from flask import Flask, render_template, jsonify, request
 import psycopg2
+import redis
+from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
@@ -46,7 +46,7 @@ def leggi_prodotti_dal_db(criterio_ordine="prezzo"):
         cur.close()
         conn.close()
         return prodotti
-    except Exception as e:
+    except psycopg2.Error as e:
         print(f"{bcolors.FAIL} Errore di lettura del DB: {e}{bcolors.ENDC}")
         return []
 
@@ -76,7 +76,7 @@ def inizializza_db(): #fa il reset della tabella
         cur.close()
         conn.close()
         print("Database inizializzato per la nuova ricerca.")
-    except Exception as e:
+    except psycopg2.Error as e:
         print(f"Errore durante l'inizializzazione del DB: {e}")
 
 

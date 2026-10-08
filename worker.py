@@ -1,7 +1,8 @@
 import os
-import redis
-import psycopg2
 import time
+
+import psycopg2
+import redis
 from dotenv import load_dotenv
 from serpapi import GoogleSearch
 
@@ -59,7 +60,7 @@ def pulisci_prezzo(prezzo_grezzo):
         # Rimuove tutto ciò che non è un numero o un punto decimale.
         prezzo_pulito = "".join(c for c in prezzo_str if c.isdigit() or c == ".").strip()
         return float(prezzo_pulito)
-    except Exception as e:
+    except ValueError as e:
         print(f"{bcolors.FAIL} Errore pulizia prezzo ({prezzo_grezzo}): {e}{bcolors.ENDC}")
         return None
 
@@ -72,7 +73,7 @@ def pulisci_stelle(stelle_grezze):
         # Trasforma in stringa, cambia le virgole in punti e pulisce gli spazi
         stelle_str = str(stelle_grezze).replace(",", ".").strip()
         return float(stelle_str)
-    except:
+    except ValueError:
         return 0.0
 
 
@@ -92,7 +93,7 @@ def pulisci_recensioni(recensioni_grezze):
         # Gestione del formato numerico standard o con "+" 
         num_pulito = "".join(c for c in rec_str if c.isdigit())
         return int(num_pulito) if num_pulito else 0
-    except:
+    except ValueError:
         return 0
     
 # FUNZIONE DATABASE
@@ -118,7 +119,7 @@ def salva_nel_db(modello, prezzo, negozio, stelle, recensioni, link):
         cur.close()
         conn.close()
         print(f"{bcolors.OKGREEN} DB Salvato: {modello[:40]}... ({negozio}){bcolors.ENDC}")
-    except Exception as e:
+    except psycopg2.Error as e:
         print(f"{bcolors.FAIL} Errore di salvataggio nel DB: {e}{bcolors.ENDC}")
 
 
@@ -180,7 +181,7 @@ def elabora_ricerca_google(query_ricerca):
                 
         print(f"{bcolors.OKBLUE} Fine elaborazione: {contatore_salvati} prodotti inseriti a DB.{bcolors.ENDC}")
         
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - the worker must survive any API failure
         print(f"{bcolors.FAIL} Errore durante la chiamata API di SerpApi: {e} {bcolors.ENDC}")
 
 
@@ -199,11 +200,9 @@ def lavora():
             query_ricerca = task[1].decode('utf-8')
             
             # SE ARRIVA UN VECCHIO URL DA GOOGLE, ESTRAE SOLO LA QUERY (per retrocompatibilità)
-            if "google.com" in query_ricerca:
-                if "q=" in query_ricerca:
-                    query_ricerca = query_ricerca.split("q=")[1].split("&")[0]
-                    query_ricerca = query_ricerca.replace("+", " ")
-            
+            if "google.com" in query_ricerca and "q=" in query_ricerca:
+                query_ricerca = query_ricerca.split("q=")[1].split("&")[0]
+                query_ricerca = query_ricerca.replace("+", " ")
             elabora_ricerca_google(query_ricerca)
             time.sleep(2)
         else:
