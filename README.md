@@ -115,6 +115,8 @@ Il **Master** e il **Worker** sono due processi Python completamente indipendent
 SmartScrape/
 ├── master.py              # Web server Flask: UI, API, inizializzazione DB, gestione coda
 ├── worker.py               # Processo demone: consuma la coda, chiama SerpApi, pulisce e salva i dati
+├── test_worker.py          # Test (pytest) delle funzioni di pulizia di prezzo, stelle e recensioni
+├── .github/workflows/ci.yml # Pipeline CI (GitHub Actions): lint con ruff e test a ogni push
 ├── requirements.txt         # Dipendenze Python
 ├── docker-compose.yml       # Servizi Redis + PostgreSQL containerizzati
 ├── .env.example              # Template della variabile SERPAPI_KEY (nessun segreto reale)
